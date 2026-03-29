@@ -25,7 +25,7 @@ export default async function SalaPage({ params }: Props) {
   return (
     <main className="min-h-screen bg-gray-50 pb-24">
       <SalaHeader nombre={sala.nombre} codigo={sala.codigo} />
-      <GaleriaFotos salaId={sala.id} />
+      <GaleriaFotos salaId={sala.id} salaNombre={sala.nombre} />
       <SubirFotos salaId={sala.id} salaCodigo={sala.codigo} />
     </main>
   )
