@@ -28,6 +28,16 @@ export default function GaleriaFotos({ salaId }: Props) {
 
     cargarFotos()
 
+    // Foto subida localmente (sin esperar Realtime)
+    function onFotoSubida(e: Event) {
+      const foto = (e as CustomEvent<Foto>).detail
+      setFotos((prev) => {
+        if (prev.some((f) => f.id === foto.id)) return prev
+        return [foto, ...prev]
+      })
+    }
+    window.addEventListener('foto-subida', onFotoSubida)
+
     const channel = supabase
       .channel(`sala-${salaId}`)
       .on(
@@ -47,6 +57,7 @@ export default function GaleriaFotos({ salaId }: Props) {
       .subscribe()
 
     return () => {
+      window.removeEventListener('foto-subida', onFotoSubida)
       supabase.removeChannel(channel)
     }
   }, [salaId])
