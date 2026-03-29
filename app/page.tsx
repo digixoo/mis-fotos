@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-export default function Home() {
+function HomeInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [codigo, setCodigo] = useState('')
   const [nombre, setNombre] = useState('')
   const [error, setError] = useState('')
@@ -14,7 +15,9 @@ export default function Home() {
   useEffect(() => {
     const nombreGuardado = localStorage.getItem('misfotos_nombre')
     if (nombreGuardado) setNombre(nombreGuardado)
-  }, [])
+    const codigoParam = searchParams.get('codigo')
+    if (codigoParam) setCodigo(codigoParam.toUpperCase())
+  }, [searchParams])
 
   async function handleEntrar(e: React.FormEvent) {
     e.preventDefault()
@@ -116,5 +119,13 @@ export default function Home() {
         </p>
       </div>
     </main>
+  )
+}
+
+export default function Home() {
+  return (
+    <Suspense>
+      <HomeInner />
+    </Suspense>
   )
 }

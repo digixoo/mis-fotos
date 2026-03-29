@@ -18,7 +18,7 @@ export default function SalaHeader({ nombre, codigo }: Props) {
 
   useEffect(() => {
     setNombreInvitado(localStorage.getItem('misfotos_nombre') ?? '')
-    setUrlSala(`${window.location.origin}/sala/${codigo}`)
+    setUrlSala(`${window.location.origin}/?codigo=${codigo}`)
   }, [codigo])
 
   function handleSalir() {
