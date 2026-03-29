@@ -32,6 +32,18 @@ function getLocalId(): string {
   return id
 }
 
+function extDeUrl(url: string): string {
+  const match = url.split('?')[0].match(/\.([a-zA-Z0-9]+)$/)
+  return match ? match[1].toLowerCase() : 'jpg'
+}
+
+function nombreDescarga(foto: Foto, indice?: number): string {
+  const fecha = new Date(foto.subida_en).toISOString().slice(0, 10) // YYYY-MM-DD
+  const ext = extDeUrl(foto.url_publica)
+  const sufijo = indice !== undefined ? `-${String(indice).padStart(3, '0')}` : ''
+  return `misfotos-${fecha}${sufijo}.${ext}`
+}
+
 async function descargarUna(foto: Foto, nombre: string) {
   try {
     const res = await fetch(foto.url_publica)
@@ -216,7 +228,7 @@ export default function GaleriaFotos({ salaId, salaNombre }: Props) {
     setDescargando({ actual: 0, total: lista.length, label })
     for (let i = 0; i < lista.length; i++) {
       setDescargando({ actual: i + 1, total: lista.length, label })
-      await descargarUna(lista[i], `misfotos-${String(i + 1).padStart(3, '0')}.jpg`)
+      await descargarUna(lista[i], nombreDescarga(lista[i], i + 1))
       if (i < lista.length - 1) await new Promise((r) => setTimeout(r, 500))
     }
     setDescargando(null)
@@ -232,7 +244,7 @@ export default function GaleriaFotos({ salaId, salaNombre }: Props) {
       setDescargando({ actual: i + 1, total: lista.length, label: `${label} (ZIP)` })
       try {
         const res = await fetch(lista[i].url_publica)
-        carpeta.file(`foto-${String(i + 1).padStart(3, '0')}.jpg`, await res.blob())
+        carpeta.file(nombreDescarga(lista[i], i + 1), await res.blob())
       } catch { /* skip */ }
     }
     const blob = await zip.generateAsync({ type: 'blob' })
@@ -456,14 +468,24 @@ export default function GaleriaFotos({ salaId, salaNombre }: Props) {
                 </button>
               )}
 
-              <Image
-                src={fotoAmpliada.url_publica}
-                alt="Foto ampliada"
-                width={800}
-                height={600}
-                className="object-contain w-full rounded-xl"
-                style={{ maxHeight: '65vh' }}
-              />
+              {fotoAmpliada.url_publica.match(/\.(mp4|mov|webm|avi|mkv|m4v)(\?|$)/i) ? (
+                <video
+                  src={fotoAmpliada.url_publica}
+                  controls
+                  playsInline
+                  className="object-contain w-full rounded-xl"
+                  style={{ maxHeight: '65vh' }}
+                />
+              ) : (
+                <Image
+                  src={fotoAmpliada.url_publica}
+                  alt="Foto ampliada"
+                  width={800}
+                  height={600}
+                  className="object-contain w-full rounded-xl"
+                  style={{ maxHeight: '65vh' }}
+                />
+              )}
 
               {/* Flecha siguiente */}
               {fotosVisibles.length > 1 && (
@@ -483,7 +505,8 @@ export default function GaleriaFotos({ salaId, salaNombre }: Props) {
               <div>
                 {fotoAmpliada.subida_por && (
                   <p className="text-white/60 text-sm">
-                    Foto de <span className="text-white/90">{fotoAmpliada.subida_por}</span>
+                    {fotoAmpliada.url_publica.match(/\.(mp4|mov|webm|avi|mkv|m4v)(\?|$)/i) ? 'Video de' : 'Foto de'}{' '}
+                    <span className="text-white/90">{fotoAmpliada.subida_por}</span>
                   </p>
                 )}
                 {fotoAmpliada.megustas > 0 && (
@@ -513,7 +536,7 @@ export default function GaleriaFotos({ salaId, salaNombre }: Props) {
             {/* Acciones */}
             <div className="flex justify-center gap-3 mt-4">
               <button
-                onClick={() => descargarUna(fotoAmpliada, `misfotos.jpg`)}
+                onClick={() => descargarUna(fotoAmpliada, nombreDescarga(fotoAmpliada))}
                 className="h-11 px-6 bg-rose-500 text-white rounded-xl font-semibold hover:bg-rose-600 transition flex items-center gap-2"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

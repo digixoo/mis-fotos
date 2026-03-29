@@ -11,6 +11,17 @@ interface Props {
 
 type Estado = 'comprimiendo' | 'subiendo' | 'ok' | 'error'
 
+function esVideo(archivo: File): boolean {
+  return archivo.type.startsWith('video/')
+}
+
+function obtenerExtension(archivo: File): string {
+  const ext = archivo.name.split('.').pop()?.toLowerCase()
+  if (ext) return ext
+  if (archivo.type.startsWith('video/')) return archivo.type.split('/')[1] || 'mp4'
+  return 'jpg'
+}
+
 interface ProgresoFoto {
   nombre: string
   estado: Estado
@@ -62,15 +73,22 @@ export default function SubirFotos({ salaId, salaCodigo }: Props) {
 
     for (let i = 0; i < archivos.length; i++) {
       try {
-        actualizarEstado(i, 'comprimiendo')
-        const comprimida = await comprimirFoto(archivos[i])
-
-        actualizarEstado(i, 'subiendo')
-        const path = `${salaCodigo}/${Date.now()}-${i}.jpg`
+        const archivo = archivos[i]
+        let archivoFinal: File
+        if (esVideo(archivo)) {
+          actualizarEstado(i, 'subiendo')
+          archivoFinal = archivo
+        } else {
+          actualizarEstado(i, 'comprimiendo')
+          archivoFinal = await comprimirFoto(archivo)
+          actualizarEstado(i, 'subiendo')
+        }
+        const ext = obtenerExtension(archivo)
+        const path = `${salaCodigo}/${Date.now()}-${i}.${ext}`
 
         const { error: uploadError } = await supabase.storage
           .from('photo-project')
-          .upload(path, comprimida, { contentType: 'image/jpeg', upsert: false })
+          .upload(path, archivoFinal, { contentType: archivo.type, upsert: false })
 
         if (uploadError) throw uploadError
 
@@ -83,7 +101,7 @@ export default function SubirFotos({ salaId, salaCodigo }: Props) {
           storage_path: path,
           url_publica: urlData.publicUrl,
           subida_por: nombre,
-          tamanio_kb: Math.round(comprimida.size / 1024),
+          tamanio_kb: Math.round(archivoFinal.size / 1024),
         })
 
         if (dbError) throw dbError
@@ -119,7 +137,7 @@ export default function SubirFotos({ salaId, salaCodigo }: Props) {
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,video/*"
         multiple
         className="hidden"
         onChange={handleArchivos}
@@ -132,7 +150,7 @@ export default function SubirFotos({ salaId, salaCodigo }: Props) {
           <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
             <span className="text-sm font-semibold text-gray-700">
               {totalEnProceso > 0
-                ? `Subiendo ${progresos.length} foto${progresos.length > 1 ? 's' : ''}…`
+                ? `Subiendo ${progresos.length} archivo${progresos.length > 1 ? 's' : ''}…`
                 : totalError > 0
                 ? `${totalOk} ok · ${totalError} con error`
                 : `${totalOk} foto${totalOk > 1 ? 's' : ''} subida${totalOk > 1 ? 's' : ''}`}

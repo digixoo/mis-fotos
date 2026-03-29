@@ -28,13 +28,32 @@ export default function FotoCard({ foto, liked, onLike, onClick, modoSeleccion, 
       }`}
       onClick={onClick}
     >
-      <Image
-        src={foto.url_publica}
-        alt={`Foto de ${foto.subida_por ?? 'invitado'}`}
-        fill
-        className={`object-cover transition-all duration-200 ${modoSeleccion ? '' : 'group-hover:scale-105'} ${seleccionada ? 'brightness-75' : ''}`}
-        sizes="(max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-      />
+      {foto.url_publica.match(/\.(mp4|mov|webm|avi|mkv|m4v)(\?|$)/i) ? (
+        <video
+          src={foto.url_publica}
+          className={`absolute inset-0 w-full h-full object-cover transition-all duration-200 ${seleccionada ? 'brightness-75' : ''}`}
+          muted
+          playsInline
+          preload="metadata"
+        />
+      ) : (
+        <Image
+          src={foto.url_publica}
+          alt={`Foto de ${foto.subida_por ?? 'invitado'}`}
+          fill
+          className={`object-cover transition-all duration-200 ${modoSeleccion ? '' : 'group-hover:scale-105'} ${seleccionada ? 'brightness-75' : ''}`}
+          sizes="(max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+        />
+      )}
+
+      {/* Indicador de video */}
+      {foto.url_publica.match(/\.(mp4|mov|webm|avi|mkv|m4v)(\?|$)/i) && (
+        <div className="absolute top-1.5 left-1.5 bg-black/50 rounded-full w-6 h-6 flex items-center justify-center pointer-events-none">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+        </div>
+      )}
 
       {/* Modo selección: checkbox */}
       {modoSeleccion && (

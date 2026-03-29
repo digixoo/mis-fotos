@@ -14,7 +14,7 @@ const AUTOPLAY_MS = 4000
 
 export default function DestacadasSection({ fotos, onVerFoto, onDescargar }: Props) {
   const destacadas = fotos
-    .filter((f) => f.megustas > 0)
+    .filter((f) => f.megustas > 0 && !f.url_publica.match(/\.(mp4|mov|webm|avi|mkv|m4v)(\?|$)/i))
     .sort((a, b) => b.megustas - a.megustas)
     .slice(0, 10)
 

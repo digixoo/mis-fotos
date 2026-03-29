@@ -1,8 +1,8 @@
 import imageCompression from 'browser-image-compression'
 
 const opciones = {
-  maxSizeMB: 1,
-  maxWidthOrHeight: 1920,
+  maxSizeMB: 4,
+  maxWidthOrHeight: 4096,
   useWebWorker: true,
 }
 
