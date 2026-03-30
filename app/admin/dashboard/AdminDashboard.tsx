@@ -25,17 +25,22 @@ interface Sala {
 interface Props {
   salas: Sala[]
   adminEmail: string
+  dominioInicial: string
 }
 
 function generarCodigo(nombre: string): string {
   return nombre.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10)
 }
 
-export default function AdminDashboard({ salas: salasIniciales, adminEmail }: Props) {
+export default function AdminDashboard({ salas: salasIniciales, adminEmail, dominioInicial }: Props) {
   const router = useRouter()
   const supabase = createSupabaseBrowser()
 
   const [salas, setSalas] = useState<Sala[]>(salasIniciales)
+  const [dominio, setDominio] = useState(dominioInicial ?? '')
+  const [guardandoDominio, setGuardandoDominio] = useState(false)
+  const [dominioGuardado, setDominioGuardado] = useState(false)
+  const [errorDominio, setErrorDominio] = useState('')
   const [nuevoNombre, setNuevoNombre] = useState('')
   const [nuevoCodigo, setNuevoCodigo] = useState('')
   const [creando, setCreando] = useState(false)
@@ -46,6 +51,25 @@ export default function AdminDashboard({ salas: salasIniciales, adminEmail }: Pr
   const [cargandoFotos, setCargandoFotos] = useState(false)
 
   const [qrSala, setQrSala] = useState<Sala | null>(null)
+
+  async function handleGuardarDominio(e: React.FormEvent) {
+    e.preventDefault()
+    const valor = dominio.trim().replace(/\/$/, '')
+    if (!valor) return
+    setGuardandoDominio(true)
+    setErrorDominio('')
+    const { error } = await supabase
+      .from('configuracion')
+      .upsert({ clave: 'dominio', valor }, { onConflict: 'clave' })
+    setGuardandoDominio(false)
+    if (error) {
+      setErrorDominio(`Error: ${error.message}`)
+      return
+    }
+    setDominio(valor)
+    setDominioGuardado(true)
+    setTimeout(() => setDominioGuardado(false), 2000)
+  }
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -200,6 +224,34 @@ export default function AdminDashboard({ salas: salasIniciales, adminEmail }: Pr
           </form>
         </div>
 
+        {/* Configuración */}
+        <div className="bg-gray-900 rounded-2xl p-5 border border-gray-800">
+          <h2 className="font-semibold text-white mb-4">Configuración</h2>
+          <form onSubmit={handleGuardarDominio} className="flex flex-col gap-3">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Dominio público del sitio</label>
+              <input
+                type="url"
+                value={dominio}
+                onChange={(e) => setDominio(e.target.value)}
+                placeholder="https://misfotos.vercel.app"
+                className="w-full h-10 px-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder:text-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition"
+              />
+              <p className="text-xs text-gray-500 mt-1">Se usa para generar los enlaces y QR de compartir.</p>
+            </div>
+            {errorDominio && (
+              <p className="text-rose-400 text-xs">{errorDominio}</p>
+            )}
+            <button
+              type="submit"
+              disabled={guardandoDominio || !dominio.trim()}
+              className="h-10 rounded-xl bg-gray-700 text-white font-semibold text-sm hover:bg-gray-600 transition disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {dominioGuardado ? '✓ Guardado' : guardandoDominio ? 'Guardando...' : 'Guardar dominio'}
+            </button>
+          </form>
+        </div>
+
         {/* Lista de salas */}
         <div className="flex flex-col gap-3">
           <h2 className="font-semibold text-white">Salas ({salas.length})</h2>
@@ -247,7 +299,7 @@ export default function AdminDashboard({ salas: salasIniciales, adminEmail }: Pr
                 <div className="border-t border-gray-800 p-4 flex flex-col items-center gap-3">
                   <div className="bg-white p-4 rounded-2xl">
                     <QRCodeSVG
-                      value={`${window.location.origin}/sala/${sala.codigo}`}
+                      value={`${dominio || window.location.origin}/?codigo=${sala.codigo}`}
                       size={180}
                       level="M"
                     />
@@ -256,7 +308,7 @@ export default function AdminDashboard({ salas: salasIniciales, adminEmail }: Pr
                     Compartí este QR para que los invitados accedan a la sala.
                   </p>
                   <p className="text-sm font-mono text-rose-400">
-                    {window.location.origin}/sala/{sala.codigo}
+                    {dominio || window.location.origin}/?codigo={sala.codigo}
                   </p>
                 </div>
               )}

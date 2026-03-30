@@ -7,19 +7,20 @@ import { QRCodeSVG } from 'qrcode.react'
 interface Props {
   nombre: string
   codigo: string
+  dominio: string
 }
 
-export default function SalaHeader({ nombre, codigo }: Props) {
+export default function SalaHeader({ nombre, codigo, dominio }: Props) {
   const router = useRouter()
   const [nombreInvitado, setNombreInvitado] = useState('')
   const [modalCompartir, setModalCompartir] = useState(false)
   const [copiado, setCopiado] = useState(false)
-  const [urlSala, setUrlSala] = useState('')
+
+  const urlSala = `${dominio}/?codigo=${codigo}`
 
   useEffect(() => {
     setNombreInvitado(localStorage.getItem('misfotos_nombre') ?? '')
-    setUrlSala(`${window.location.origin}/?codigo=${codigo}`)
-  }, [codigo])
+  }, [])
 
   function handleSalir() {
     router.push('/')
