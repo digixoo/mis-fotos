@@ -51,6 +51,7 @@ export default function AdminDashboard({ salas: salasIniciales, adminEmail, domi
   const [cargandoFotos, setCargandoFotos] = useState(false)
 
   const [qrSala, setQrSala] = useState<Sala | null>(null)
+  const [fotoLightbox, setFotoLightbox] = useState<FotoAdmin | null>(null)
 
   async function handleGuardarDominio(e: React.FormEvent) {
     e.preventDefault()
@@ -325,28 +326,25 @@ export default function AdminDashboard({ salas: salasIniciales, adminEmail, domi
                   ) : (
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                       {fotosActivas.map((foto) => (
-                        <div key={foto.id} className="relative aspect-square rounded-xl overflow-hidden group">
+                        <button
+                          key={foto.id}
+                          onClick={() => setFotoLightbox(foto)}
+                          className="relative aspect-square rounded-xl overflow-hidden group"
+                        >
                           <Image
                             src={foto.url_publica}
                             alt={`Foto de ${foto.subida_por ?? 'invitado'}`}
                             fill
-                            className="object-cover"
-                            sizes="120px"
+                            className="object-cover group-hover:brightness-75 transition"
+                            sizes="(max-width: 640px) 33vw, 25vw"
+                            quality={85}
                           />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition flex items-center justify-center">
-                            <button
-                              onClick={() => handleEliminarFoto(foto)}
-                              className="opacity-0 group-hover:opacity-100 transition bg-red-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium"
-                            >
-                              Eliminar
-                            </button>
-                          </div>
                           {foto.subida_por && (
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1">
                               <p className="text-white text-xs truncate">{foto.subida_por}</p>
                             </div>
                           )}
-                        </div>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -356,6 +354,104 @@ export default function AdminDashboard({ salas: salasIniciales, adminEmail, domi
           ))}
         </div>
       </div>
+
+      {/* Lightbox admin */}
+      {fotoLightbox && (() => {
+        const indice = fotosActivas.findIndex((f) => f.id === fotoLightbox.id)
+        const irAnterior = () => setFotoLightbox(fotosActivas[(indice - 1 + fotosActivas.length) % fotosActivas.length])
+        const irSiguiente = () => setFotoLightbox(fotosActivas[(indice + 1) % fotosActivas.length])
+        return (
+          <div
+            className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4"
+            onClick={() => setFotoLightbox(null)}
+          >
+            <div
+              className="relative w-full max-w-2xl flex flex-col items-center gap-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Contador */}
+              {fotosActivas.length > 1 && (
+                <p className="text-white/40 text-xs self-end">{indice + 1} / {fotosActivas.length}</p>
+              )}
+
+              {/* Imagen + flechas */}
+              <div className="relative w-full flex items-center">
+                {fotosActivas.length > 1 && (
+                  <button
+                    onClick={irAnterior}
+                    className="absolute left-0 -translate-x-2 z-10 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 flex items-center justify-center transition flex-shrink-0"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                  </button>
+                )}
+
+                {fotoLightbox.url_publica.match(/\.(mp4|mov|webm|avi|mkv|m4v)(\?|$)/i) ? (
+                  <video
+                    src={fotoLightbox.url_publica}
+                    controls
+                    playsInline
+                    className="object-contain w-full rounded-xl"
+                    style={{ maxHeight: '65vh' }}
+                  />
+                ) : (
+                  <Image
+                    src={fotoLightbox.url_publica}
+                    alt="Vista previa"
+                    width={800}
+                    height={600}
+                    className="object-contain w-full rounded-xl"
+                    style={{ maxHeight: '65vh' }}
+                  />
+                )}
+
+                {fotosActivas.length > 1 && (
+                  <button
+                    onClick={irSiguiente}
+                    className="absolute right-0 translate-x-2 z-10 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 flex items-center justify-center transition flex-shrink-0"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                  </button>
+                )}
+              </div>
+
+              {fotoLightbox.subida_por && (
+                <p className="text-white/60 text-sm">
+                  Subida por <span className="text-white/90">{fotoLightbox.subida_por}</span>
+                </p>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={async () => {
+                    if (!confirm('¿Estás seguro? Esta acción no se puede deshacer.')) return
+                    const siguiente = fotosActivas.length > 1
+                      ? fotosActivas[(indice + 1) % fotosActivas.length]
+                      : null
+                    await handleEliminarFoto(fotoLightbox)
+                    setFotoLightbox(siguiente?.id !== fotoLightbox.id ? siguiente : null)
+                  }}
+                  className="h-11 px-6 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition flex items-center gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                  </svg>
+                  Eliminar
+                </button>
+                <button
+                  onClick={() => setFotoLightbox(null)}
+                  className="h-11 px-6 bg-white/10 text-white rounded-xl font-semibold hover:bg-white/20 transition"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
